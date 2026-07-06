@@ -52,6 +52,7 @@ final class Platform
     protected function discoverApps(): array
     {
         $apps = [];
+        is_dir($this->appsDirectory) or mkdir($this->appsDirectory, 0755, true);
         foreach (new DirectoryIterator($this->appsDirectory) as $app) {
             if ($app->isDot()) {
                 continue;
