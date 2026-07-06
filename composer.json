@@ -1,0 +1,34 @@
+{
+    "name": "evan755/platform",
+    "description": "platform",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Evan755\\Platform\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Evan Wu",
+            "email": "info@wupeize.com"
+        }
+    ],
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "require": {
+        "php": "^8.4",
+        "ext-mongodb": "*",
+        "symfony/console": "^8.1",
+        "mongodb/mongodb": "^2.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    }
+}
