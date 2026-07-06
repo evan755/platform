@@ -2,6 +2,7 @@
 
 namespace Evan755\Platform\Kernel\Commands\App;
 
+use Evan755\Platform\Kernel\Repositories\AppRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -19,6 +20,17 @@ class CreateCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $app = $input->getArgument('app');
+        $appRepository = new AppRepository();
+        if ($appRepository->exists($app)) {
+            $output->writeln("<error>Application $app already exists</error>");
+            return Command::FAILURE;
+        }
+        if (!$appRepository->create($app)) {
+            $output->writeln("<error>Application $app already exists</error>");
+            return Command::FAILURE;
+        }
+        $output->writeln("<info>Application $app created</info>");
         return Command::SUCCESS;
     }
 }
