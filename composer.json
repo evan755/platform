@@ -25,7 +25,7 @@
         "test": "vendor/bin/phpunit"
     },
     "require": {
-        "php": "^8.4",
+        "php": ">=8.4",
         "ext-mongodb": "*",
         "symfony/console": "^8.1",
         "mongodb/mongodb": "^2.3"
