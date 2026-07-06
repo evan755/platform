@@ -1,7 +1,7 @@
 {
     "name": "evan755/platform",
     "description": "PHP Enterprise Application Platform",
-    "keywords": ["platform"],
+    "keywords": ["platform","application"],
     "homepage": "https://github.com/evan755/platform",
     "type": "library",
     "license": "MIT",
