@@ -36,4 +36,20 @@ class ModelRepository extends Repository
         }
         return $path . DIRECTORY_SEPARATOR . $name . '.php';
     }
+
+    protected function stub(): string
+    {
+        return <<<'EOF'
+        <?php declare(strict_types=1);
+        
+        namespace {{ namespace }};
+        
+        use Evan755\Platform\Kernel\Model;
+
+        class {{ class }} extends Model
+        {
+        
+        }
+        EOF;
+    }
 }

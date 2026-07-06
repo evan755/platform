@@ -36,4 +36,31 @@ class CommandRepository extends Repository
         }
         return $path . DIRECTORY_SEPARATOR . $name . 'Command.php';
     }
+
+    protected function stub(): string
+    {
+        return <<<'EOF'
+        <?php declare(strict_types=1);
+        
+        namespace {{ namespace }};
+        
+        use Symfony\Component\Console\Command\Command;
+        use Symfony\Component\Console\Input\InputArgument;
+        use Symfony\Component\Console\Input\InputInterface;
+        use Symfony\Component\Console\Output\OutputInterface;
+        
+        class {{ class }} extends Command
+        {
+            protected function configure(): void
+            {
+                 $this->setName('{{ command }}');
+            }
+            
+            protected function execute(InputInterface $input, OutputInterface $output): int
+            {
+                return Command::SUCCESS;
+            }
+        }
+        EOF;
+    }
 }

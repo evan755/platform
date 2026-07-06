@@ -39,4 +39,13 @@ class ViewRepository extends Repository
         $file = basename($path);
         return $dir . DIRECTORY_SEPARATOR . strtolower($file);
     }
+
+    protected function stub(): string
+    {
+        return <<<'EOF'
+        <div class="platform app-{{$app}}">
+            
+        </div>
+        EOF;
+    }
 }

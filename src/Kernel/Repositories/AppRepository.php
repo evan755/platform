@@ -6,11 +6,6 @@ use Evan755\Platform\Kernel\Repository;
 
 class AppRepository extends Repository
 {
-    public function index(): array
-    {
-        return $this->platform->apps;
-    }
-
     public function create(string $app): bool
     {
         return true;
@@ -26,6 +21,11 @@ class AppRepository extends Repository
         return array_key_exists($app, $this->index());
     }
 
+    public function index(): array
+    {
+        return $this->platform->apps;
+    }
+
     public function enable(string $app): bool
     {
         return true;
@@ -34,5 +34,23 @@ class AppRepository extends Repository
     public function disable(string $app): bool
     {
         return true;
+    }
+
+    protected function stub(): string
+    {
+        return <<<'EOF'
+        {
+            "name": "{{ app }}",
+            "description": "{{ description }}",
+            "version": "{{ version }}",
+            "type": "{{ type }}",
+            "status": "{{ status }}",
+            "route_prefix": "{{ route_prefix }}",
+            "database": {
+                "uri": "{{ db_uri }}",
+                "name": "{{ db_name }}"
+            },
+        }
+        EOF;
     }
 }
