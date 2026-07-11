@@ -106,7 +106,7 @@ class CommandTest extends TestCase
     {
         $command = new DeleteCommand();
 
-        $this->assertSame('Delete an application from the project', $command->getDescription());
+        $this->assertSame('Delete an application from the platform', $command->getDescription());
     }
 
     public function testDeleteCommandHasAppArgument(): void
@@ -132,14 +132,14 @@ class CommandTest extends TestCase
         $this->assertSame('The name of the application', $argument->getDescription());
     }
 
-    public function testDeleteCommandExecuteReturnsSuccess(): void
+    public function testDeleteCommandExecuteReturnsFailureWhenAppDoesNotExist(): void
     {
         $command = new DeleteCommand();
         $tester = new CommandTester($command);
 
         $exitCode = $tester->execute(['app' => 'my-app']);
 
-        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertSame(Command::FAILURE, $exitCode);
     }
 
     // --- IndexCommand ---
