@@ -32,9 +32,17 @@ class ModelRepository extends Repository
         $path = $this->model($app, $model);
         $dir = dirname($path);
         is_dir($dir) or mkdir($dir, 0755, true);
+
+        $parts = explode('/', $model);
+        $class = array_pop($parts);
+        $namespace = 'App\\' . $app . '\\Models';
+        if (!empty($parts)) {
+            $namespace .= '\\' . implode('\\', $parts);
+        }
+
         return (bool)file_put_contents($path, $this->render($this->stub(), [
-            'namespace' => 'App\\' . $app . '\\Models',
-            'class' => $model,
+            'namespace' => $namespace,
+            'class' => $class,
         ]));
     }
 
