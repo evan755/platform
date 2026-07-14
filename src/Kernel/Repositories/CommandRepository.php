@@ -40,7 +40,7 @@ class CommandRepository extends Repository
         return (bool)file_put_contents($path, $this->render($this->stub(), [
             'namespace' => $namespace,
             'class' => $name . 'Command',
-            'command' => strtolower(str_replace('/', ':', $command)),
+            'command' => strtolower($app) . ':' . strtolower(str_replace('/', ':', $command)),
         ]));
     }
 
