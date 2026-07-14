@@ -29,12 +29,9 @@ class ModelRepository extends Repository
 
     public function create(string $app, string $model): bool
     {
-        $path = $this->model($app, $model);
-        $dir = dirname($path);
-        is_dir($dir) or mkdir($dir, 0755, true);
+        [$path, $parts, $name] = $this->model($app, $model);
+        is_dir(dirname($path)) or mkdir(dirname($path), 0755, true);
 
-        $parts = explode('/', $model);
-        $class = array_pop($parts);
         $namespace = 'App\\' . $app . '\\Models';
         if (!empty($parts)) {
             $namespace .= '\\' . implode('\\', $parts);
@@ -42,11 +39,26 @@ class ModelRepository extends Repository
 
         return (bool)file_put_contents($path, $this->render($this->stub(), [
             'namespace' => $namespace,
-            'class' => $class,
+            'class' => $name,
         ]));
     }
 
-    protected function model(string $app, string $model): string
+    public function delete(string $app, string $model): bool
+    {
+        [$path] = $this->model($app, $model);
+        if (!file_exists($path)) {
+            return false;
+        }
+        return unlink($path);
+    }
+
+    public function exists(string $app, string $model): bool
+    {
+        [$path] = $this->model($app, $model);
+        return file_exists($path);
+    }
+
+    protected function model(string $app, string $model): array
     {
         $parts = explode('/', $model);
         $name = array_pop($parts);
@@ -54,7 +66,8 @@ class ModelRepository extends Repository
         foreach ($parts as $dir) {
             $path .= DIRECTORY_SEPARATOR . $dir;
         }
-        return $path . DIRECTORY_SEPARATOR . $name . '.php';
+        $path .= DIRECTORY_SEPARATOR . $name . '.php';
+        return [$path, $parts, $name];
     }
 
     protected function stub(): string
@@ -71,19 +84,5 @@ class ModelRepository extends Repository
 
         }
         EOF;
-    }
-
-    public function delete(string $app, string $model): bool
-    {
-        $path = $this->model($app, $model);
-        if (!file_exists($path)) {
-            return false;
-        }
-        return unlink($path);
-    }
-
-    public function exists(string $app, string $model): bool
-    {
-        return file_exists($this->model($app, $model));
     }
 }
