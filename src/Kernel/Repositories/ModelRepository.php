@@ -43,21 +43,6 @@ class ModelRepository extends Repository
         ]));
     }
 
-    public function delete(string $app, string $model): bool
-    {
-        [$path] = $this->model($app, $model);
-        if (!file_exists($path)) {
-            return false;
-        }
-        return unlink($path);
-    }
-
-    public function exists(string $app, string $model): bool
-    {
-        [$path] = $this->model($app, $model);
-        return file_exists($path);
-    }
-
     protected function model(string $app, string $model): array
     {
         $parts = explode('/', $model);
@@ -84,5 +69,20 @@ class ModelRepository extends Repository
 
         }
         EOF;
+    }
+
+    public function delete(string $app, string $model): bool
+    {
+        [$path] = $this->model($app, $model);
+        if (!file_exists($path)) {
+            return false;
+        }
+        return unlink($path);
+    }
+
+    public function exists(string $app, string $model): bool
+    {
+        [$path] = $this->model($app, $model);
+        return file_exists($path);
     }
 }

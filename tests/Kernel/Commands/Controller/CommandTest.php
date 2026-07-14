@@ -2,11 +2,17 @@
 
 namespace Tests\Kernel\Commands\Controller;
 
+use Composer\Autoload\ClassLoader;
 use Evan755\Platform\Kernel\Commands\Controller\CreateCommand;
 use Evan755\Platform\Kernel\Commands\Controller\DeleteCommand;
 use Evan755\Platform\Kernel\Commands\Controller\IndexCommand;
+use Evan755\Platform\Kernel\Platform;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -15,6 +21,52 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[CoversClass(IndexCommand::class)]
 class CommandTest extends TestCase
 {
+    protected string $appsDir;
+
+    protected function setUp(): void
+    {
+        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
+        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
+    }
+
+    protected function tearDown(): void
+    {
+        Platform::reset();
+
+        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . 'my-app';
+        if (is_dir($appDir)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $file) {
+                if ($file->isDir()) {
+                    rmdir($file->getPathname());
+                } else {
+                    unlink($file->getPathname());
+                }
+            }
+            rmdir($appDir);
+        }
+    }
+
+    protected function createApp(string $name): void
+    {
+        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . $name;
+        $dirs = [$appDir, $appDir . DIRECTORY_SEPARATOR . 'Controllers'];
+        foreach ($dirs as $dir) {
+            is_dir($dir) or mkdir($dir, 0755, true);
+        }
+        file_put_contents($appDir . DIRECTORY_SEPARATOR . 'App.json', json_encode([
+            'name' => $name,
+            'database' => ['uri' => '', 'name' => $name . '_db'],
+        ]));
+        Platform::reset();
+    }
+
+    protected function createControllerFile(string $app, string $controller): void
+    {
+        $path = $this->appsDir . DIRECTORY_SEPARATOR . $app . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR . $controller . 'Controller.php';
+        file_put_contents($path, '<?php');
+    }
+
     // --- CreateCommand ---
 
     public function testCreateCommandExtendsBaseCommand(): void
@@ -91,14 +143,42 @@ class CommandTest extends TestCase
         $this->assertSame('The name of the controller to create', $argument->getDescription());
     }
 
+    public function testCreateCommandExecuteReturnsFailureWhenAppDoesNotExist(): void
+    {
+        $command = new CreateCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'nonexistent', 'name' => 'my-controller']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('does not exist', $tester->getDisplay());
+    }
+
+    public function testCreateCommandExecuteReturnsFailureWhenControllerAlreadyExists(): void
+    {
+        $this->createApp('my-app');
+        $this->createControllerFile('my-app', 'my-controller');
+
+        $command = new CreateCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'my-controller']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('already exists', $tester->getDisplay());
+    }
+
     public function testCreateCommandExecuteReturnsSuccess(): void
     {
+        $this->createApp('my-app');
+
         $command = new CreateCommand();
         $tester = new CommandTester($command);
 
         $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'my-controller']);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('created', $tester->getDisplay());
     }
 
     // --- DeleteCommand ---
@@ -177,14 +257,42 @@ class CommandTest extends TestCase
         $this->assertSame('The name of the controller to delete', $argument->getDescription());
     }
 
+    public function testDeleteCommandExecuteReturnsFailureWhenAppDoesNotExist(): void
+    {
+        $command = new DeleteCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'nonexistent', 'name' => 'my-controller']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('does not exist', $tester->getDisplay());
+    }
+
+    public function testDeleteCommandExecuteReturnsFailureWhenControllerDoesNotExist(): void
+    {
+        $this->createApp('my-app');
+
+        $command = new DeleteCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'my-controller']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('does not exist', $tester->getDisplay());
+    }
+
     public function testDeleteCommandExecuteReturnsSuccess(): void
     {
+        $this->createApp('my-app');
+        $this->createControllerFile('my-app', 'my-controller');
+
         $command = new DeleteCommand();
         $tester = new CommandTester($command);
 
         $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'my-controller']);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('deleted', $tester->getDisplay());
     }
 
     // --- IndexCommand ---

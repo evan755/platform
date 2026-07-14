@@ -16,7 +16,7 @@ class CommandRepository extends Repository
             return [];
         }
         $commands = [];
-        $iterator = new \RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $file) {
             if ($file->isDir() || $file->getExtension() !== 'php') {
                 continue;
@@ -42,21 +42,6 @@ class CommandRepository extends Repository
             'class' => $name . 'Command',
             'command' => strtolower($app) . ':' . strtolower(str_replace('/', ':', $command)),
         ]));
-    }
-
-    public function delete(string $app, string $command): bool
-    {
-        [$path] = $this->command($app, $command);
-        if (!file_exists($path)) {
-            return false;
-        }
-        return unlink($path);
-    }
-
-    public function exists(string $app, string $command): bool
-    {
-        [$path] = $this->command($app, $command);
-        return file_exists($path);
     }
 
     protected function command(string $app, string $command): array
@@ -96,5 +81,20 @@ class CommandRepository extends Repository
             }
         }
         EOF;
+    }
+
+    public function delete(string $app, string $command): bool
+    {
+        [$path] = $this->command($app, $command);
+        if (!file_exists($path)) {
+            return false;
+        }
+        return unlink($path);
+    }
+
+    public function exists(string $app, string $command): bool
+    {
+        [$path] = $this->command($app, $command);
+        return file_exists($path);
     }
 }

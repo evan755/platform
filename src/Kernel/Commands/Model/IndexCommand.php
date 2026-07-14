@@ -2,8 +2,6 @@
 
 namespace Evan755\Platform\Kernel\Commands\Model;
 
-use Evan755\Platform\Kernel\Repositories\AppRepository;
-use Evan755\Platform\Kernel\Repositories\ModelRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
