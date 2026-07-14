@@ -64,7 +64,7 @@ final class Platform
                 $config = new stdClass();
             }
 
-            $config->slug = $app->getFilename();
+            $config->slug = strtolower($app->getFilename());
             $config->appDirectory = $app->getPathname();
             $apps[$app->getFilename()] = $config;
         }
