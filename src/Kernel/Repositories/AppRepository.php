@@ -9,11 +9,6 @@ use RecursiveIteratorIterator;
 
 class AppRepository extends Repository
 {
-    public function index(): array
-    {
-        return $this->platform->apps;
-    }
-
     public function create(string $app): bool
     {
         foreach ([$this->appDirectory($app), $this->modelDirectory($app), $this->controllerDirectory($app), $this->viewDirectory($app), $this->commandDirectory($app)] as $directory) {
@@ -28,28 +23,6 @@ class AppRepository extends Repository
             new ViewRepository()->create($app, 'help') &&
             new CommandRepository()->create($app, 'Welcome')
         );
-    }
-
-    public function delete(string $app): bool
-    {
-        $directory = $this->appDirectory($app);
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
-        foreach ($iterator as $item) {
-            $itemPath = $item->getPathname();
-            if ($item->isDir()) {
-                if (!rmdir($itemPath)) {
-                    return false;
-                }
-            } elseif (!unlink($itemPath)) {
-                return false;
-            }
-        }
-        return rmdir($directory);
-    }
-
-    public function exists(string $app): bool
-    {
-        return array_key_exists($app, $this->index());
     }
 
     protected function appConfig(string $app): bool
@@ -82,5 +55,32 @@ class AppRepository extends Repository
             }
         }
         EOF;
+    }
+
+    public function delete(string $app): bool
+    {
+        $directory = $this->appDirectory($app);
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($iterator as $item) {
+            $itemPath = $item->getPathname();
+            if ($item->isDir()) {
+                if (!rmdir($itemPath)) {
+                    return false;
+                }
+            } elseif (!unlink($itemPath)) {
+                return false;
+            }
+        }
+        return rmdir($directory);
+    }
+
+    public function exists(string $app): bool
+    {
+        return array_key_exists($app, $this->index());
+    }
+
+    public function index(): array
+    {
+        return $this->platform->apps;
     }
 }
