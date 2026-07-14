@@ -2,8 +2,10 @@
 
 namespace Evan755\Platform\Kernel\Repositories;
 
-use DirectoryIterator;
 use Evan755\Platform\Kernel\Repository;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class ModelRepository extends Repository
 {
@@ -14,13 +16,13 @@ class ModelRepository extends Repository
             return [];
         }
         $models = [];
-        foreach (new DirectoryIterator($directory) as $file) {
-            if ($file->isDot() || $file->isDir()) {
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($iterator as $file) {
+            if ($file->isDir() || $file->getExtension() !== 'php') {
                 continue;
             }
-            if ($file->getExtension() === 'php') {
-                $models[] = $file->getBasename('.php');
-            }
+            $relative = ltrim(str_replace($directory, '', $file->getPathname()), DIRECTORY_SEPARATOR);
+            $models[] = str_replace(DIRECTORY_SEPARATOR, '/', preg_replace('/\.php$/', '', $relative));
         }
         return $models;
     }
@@ -36,7 +38,7 @@ class ModelRepository extends Repository
         ]));
     }
 
-    public function model(string $app, string $model): string
+    protected function model(string $app, string $model): string
     {
         $parts = explode('/', $model);
         $name = array_pop($parts);

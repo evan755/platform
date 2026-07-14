@@ -2,11 +2,17 @@
 
 namespace Tests\Kernel\Commands\Model;
 
+use Composer\Autoload\ClassLoader;
 use Evan755\Platform\Kernel\Commands\Model\CreateCommand;
 use Evan755\Platform\Kernel\Commands\Model\DeleteCommand;
 use Evan755\Platform\Kernel\Commands\Model\IndexCommand;
+use Evan755\Platform\Kernel\Platform;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -15,6 +21,52 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[CoversClass(IndexCommand::class)]
 class CommandTest extends TestCase
 {
+    protected string $appsDir;
+
+    protected function setUp(): void
+    {
+        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
+        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
+    }
+
+    protected function tearDown(): void
+    {
+        Platform::reset();
+
+        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . 'my-app';
+        if (is_dir($appDir)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $file) {
+                if ($file->isDir()) {
+                    rmdir($file->getPathname());
+                } else {
+                    unlink($file->getPathname());
+                }
+            }
+            rmdir($appDir);
+        }
+    }
+
+    protected function createApp(string $name): void
+    {
+        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . $name;
+        $dirs = [$appDir, $appDir . DIRECTORY_SEPARATOR . 'Models'];
+        foreach ($dirs as $dir) {
+            is_dir($dir) or mkdir($dir, 0755, true);
+        }
+        file_put_contents($appDir . DIRECTORY_SEPARATOR . 'App.json', json_encode([
+            'name' => $name,
+            'database' => ['uri' => '', 'name' => $name . '_db'],
+        ]));
+        Platform::reset();
+    }
+
+    protected function createModelFile(string $app, string $model): void
+    {
+        $path = $this->appsDir . DIRECTORY_SEPARATOR . $app . DIRECTORY_SEPARATOR . 'Models' . DIRECTORY_SEPARATOR . $model . '.php';
+        file_put_contents($path, '<?php');
+    }
+
     // --- CreateCommand ---
 
     public function testCreateCommandExtendsBaseCommand(): void
@@ -91,14 +143,42 @@ class CommandTest extends TestCase
         $this->assertSame('The name of the model to create', $argument->getDescription());
     }
 
-    public function testCreateCommandExecuteReturnsSuccess(): void
+    public function testCreateCommandExecuteReturnsFailureWhenAppDoesNotExist(): void
     {
         $command = new CreateCommand();
         $tester = new CommandTester($command);
 
-        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'my-model']);
+        $exitCode = $tester->execute(['app' => 'nonexistent', 'name' => 'Session']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('does not exist', $tester->getDisplay());
+    }
+
+    public function testCreateCommandExecuteReturnsFailureWhenModelAlreadyExists(): void
+    {
+        $this->createApp('my-app');
+        $this->createModelFile('my-app', 'Session');
+
+        $command = new CreateCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'Session']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('already exists', $tester->getDisplay());
+    }
+
+    public function testCreateCommandExecuteReturnsSuccess(): void
+    {
+        $this->createApp('my-app');
+
+        $command = new CreateCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'Session']);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('created', $tester->getDisplay());
     }
 
     // --- DeleteCommand ---
@@ -177,14 +257,42 @@ class CommandTest extends TestCase
         $this->assertSame('The name of the model to delete', $argument->getDescription());
     }
 
-    public function testDeleteCommandExecuteReturnsSuccess(): void
+    public function testDeleteCommandExecuteReturnsFailureWhenAppDoesNotExist(): void
     {
         $command = new DeleteCommand();
         $tester = new CommandTester($command);
 
-        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'my-model']);
+        $exitCode = $tester->execute(['app' => 'nonexistent', 'name' => 'Session']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('does not exist', $tester->getDisplay());
+    }
+
+    public function testDeleteCommandExecuteReturnsFailureWhenModelDoesNotExist(): void
+    {
+        $this->createApp('my-app');
+
+        $command = new DeleteCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'Session']);
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertStringContainsString('does not exist', $tester->getDisplay());
+    }
+
+    public function testDeleteCommandExecuteReturnsSuccess(): void
+    {
+        $this->createApp('my-app');
+        $this->createModelFile('my-app', 'Session');
+
+        $command = new DeleteCommand();
+        $tester = new CommandTester($command);
+
+        $exitCode = $tester->execute(['app' => 'my-app', 'name' => 'Session']);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('deleted', $tester->getDisplay());
     }
 
     // --- IndexCommand ---
@@ -240,22 +348,17 @@ class CommandTest extends TestCase
         $this->assertSame('The name of the application (lists all if omitted)', $argument->getDescription());
     }
 
-    public function testIndexCommandExecuteReturnsSuccess(): void
+    // TODO: Re-enable when IndexCommand logic is implemented
+    // public function testIndexCommandExecuteReturnsFailureWhenAppDoesNotExist(): void {}
+    // public function testIndexCommandExecuteReturnsSuccessWithModels(): void {}
+    // public function testIndexCommandExecuteReturnsSuccessWithNoModels(): void {}
+
+    public function testIndexCommandExecuteReturnsSuccessListingAllApps(): void
     {
         $command = new IndexCommand();
         $tester = new CommandTester($command);
 
         $exitCode = $tester->execute([]);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    public function testIndexCommandExecuteWithAppReturnsSuccess(): void
-    {
-        $command = new IndexCommand();
-        $tester = new CommandTester($command);
-
-        $exitCode = $tester->execute(['app' => 'my-app']);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
     }

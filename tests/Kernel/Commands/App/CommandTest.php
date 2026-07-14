@@ -9,6 +9,9 @@ use Evan755\Platform\Kernel\Commands\App\IndexCommand;
 use Evan755\Platform\Kernel\Platform;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -33,10 +36,7 @@ class CommandTest extends TestCase
 
         $appDir = $this->appsDir . DIRECTORY_SEPARATOR . 'my-app';
         if (is_dir($appDir)) {
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($appDir, \RecursiveDirectoryIterator::SKIP_DOTS),
-                \RecursiveIteratorIterator::CHILD_FIRST
-            );
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
             foreach ($iterator as $file) {
                 if ($file->isDir()) {
                     rmdir($file->getPathname());
