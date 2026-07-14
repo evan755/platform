@@ -3,6 +3,9 @@
 namespace Evan755\Platform\Kernel\Repositories;
 
 use Evan755\Platform\Kernel\Repository;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class AppRepository extends Repository
 {
@@ -18,33 +21,35 @@ class AppRepository extends Repository
         }
         return (
             $this->appConfig($app) &&
-            new ModelRepository()->create($app,'Session') &&
-            new ControllerRepository()->create($app,'Welcome') &&
-            new ViewRepository()->create($app,'home') &&
-            new ViewRepository()->create($app,'about') &&
-            new ViewRepository()->create($app,'help') &&
-            new CommandRepository()->create($app,'Welcome')
+            new ModelRepository()->create($app, 'Session') &&
+            new ControllerRepository()->create($app, 'Welcome') &&
+            new ViewRepository()->create($app, 'home') &&
+            new ViewRepository()->create($app, 'about') &&
+            new ViewRepository()->create($app, 'help') &&
+            new CommandRepository()->create($app, 'Welcome')
         );
     }
 
     public function delete(string $app): bool
     {
-        return true;
+        $directory = $this->appDirectory($app);
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($iterator as $item) {
+            $itemPath = $item->getPathname();
+            if ($item->isDir()) {
+                if (!rmdir($itemPath)) {
+                    return false;
+                }
+            } elseif (!unlink($itemPath)) {
+                return false;
+            }
+        }
+        return rmdir($directory);
     }
 
     public function exists(string $app): bool
     {
         return array_key_exists($app, $this->index());
-    }
-
-    public function enable(string $app): bool
-    {
-        return true;
-    }
-
-    public function disable(string $app): bool
-    {
-        return true;
     }
 
     protected function appConfig(string $app): bool
