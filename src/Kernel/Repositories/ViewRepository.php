@@ -52,7 +52,7 @@ class ViewRepository extends Repository
     protected function stub(): string
     {
         return <<<'EOF'
-        <div class="platform app-{{$app}}">
+        <div class="platform app-{{ app }}">
 
         </div>
         EOF;
