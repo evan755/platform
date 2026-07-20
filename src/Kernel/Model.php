@@ -46,6 +46,17 @@ abstract class Model
         return InflectorFactory::create()->build()->pluralize(strtolower($class));
     }
 
+    protected function now(): UTCDateTime
+    {
+        return new UTCDateTime();
+    }
+
+    public function find(array $filter = [], array $options = []): CursorInterface
+    {
+        $filter['deleted_at'] = ['$exists' => false];
+        return $this->collection->find($filter, $options);
+    }
+
     public function findOne(array $filter = [], array $options = []): array|object|null
     {
         $filter['deleted_at'] = ['$exists' => false];
@@ -59,11 +70,6 @@ abstract class Model
             $document['updated_at'] = $this->now();
         }
         return $this->collection->insertOne($document)->getInsertedId();
-    }
-
-    protected function now(): UTCDateTime
-    {
-        return new UTCDateTime();
     }
 
     public function update(array $filter, array|object $update, array $options = []): int
@@ -105,12 +111,6 @@ abstract class Model
     public function onlyTrashed(array $filter = [], array $options = []): CursorInterface
     {
         $filter['deleted_at'] = ['$exists' => true];
-        return $this->collection->find($filter, $options);
-    }
-
-    public function find(array $filter = [], array $options = []): CursorInterface
-    {
-        $filter['deleted_at'] = ['$exists' => false];
         return $this->collection->find($filter, $options);
     }
 }

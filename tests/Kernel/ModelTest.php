@@ -4,6 +4,7 @@ namespace Tests\Kernel;
 
 use Evan755\Platform\Kernel\Model;
 use Evan755\Platform\Kernel\Platform;
+use MongoDB\BSON\UTCDateTime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -135,12 +136,44 @@ class ModelTest extends TestCase
         $this->assertCount(1, $reflection->getParameters());
     }
 
+    public function testSoftDeleteMethodExists(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'softDelete');
+
+        $this->assertTrue($reflection->isPublic());
+        $this->assertCount(1, $reflection->getParameters());
+    }
+
     public function testCountMethodExists(): void
     {
         $reflection = new ReflectionMethod(Model::class, 'count');
 
         $this->assertTrue($reflection->isPublic());
         $this->assertCount(1, $reflection->getParameters());
+    }
+
+    public function testWithTrashedMethodExists(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'withTrashed');
+
+        $this->assertTrue($reflection->isPublic());
+        $this->assertCount(0, $reflection->getParameters());
+    }
+
+    public function testOnlyTrashedMethodExists(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'onlyTrashed');
+
+        $this->assertTrue($reflection->isPublic());
+        $this->assertCount(2, $reflection->getParameters());
+    }
+
+    public function testNowMethodExists(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'now');
+
+        $this->assertTrue($reflection->isProtected());
+        $this->assertCount(0, $reflection->getParameters());
     }
 
     public function testResolveCollectionUsesExplicitCollections(): void
@@ -228,6 +261,140 @@ class ModelTest extends TestCase
         unlink($appJson);
         rmdir($appDir);
         Platform::reset();
+    }
+
+    // --- now() 方法测试 ---
+
+    public function testNowReturnsUTCDateTimeInstance(): void
+    {
+        $model = new TestModel();
+        $reflection = new ReflectionClass(TestModel::class);
+        $method = $reflection->getMethod('now');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($model);
+
+        $this->assertInstanceOf(UTCDateTime::class, $result);
+    }
+
+    public function testNowReturnsCurrentTime(): void
+    {
+        $model = new TestModel();
+        $reflection = new ReflectionClass(TestModel::class);
+        $method = $reflection->getMethod('now');
+        $method->setAccessible(true);
+
+        $before = new UTCDateTime();
+        $result = $method->invoke($model);
+        $after = new UTCDateTime();
+
+        $this->assertGreaterThanOrEqual($before->toDateTime()->getTimestamp(), $result->toDateTime()->getTimestamp());
+        $this->assertLessThanOrEqual($after->toDateTime()->getTimestamp(), $result->toDateTime()->getTimestamp());
+    }
+
+    // --- 方法返回类型测试 ---
+
+    public function testFindMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'find');
+
+        $this->assertSame('MongoDB\Driver\CursorInterface', $reflection->getReturnType()->getName());
+    }
+
+    public function testFindOneMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'findOne');
+
+        $this->assertTrue($reflection->getReturnType() instanceof \ReflectionUnionType);
+    }
+
+    public function testInsertMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'insert');
+
+        $this->assertSame('mixed', $reflection->getReturnType()->getName());
+    }
+
+    public function testUpdateMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'update');
+
+        $this->assertSame('int', $reflection->getReturnType()->getName());
+    }
+
+    public function testDeleteMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'delete');
+
+        $this->assertSame('int', $reflection->getReturnType()->getName());
+    }
+
+    public function testSoftDeleteMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'softDelete');
+
+        $this->assertSame('int', $reflection->getReturnType()->getName());
+    }
+
+    public function testCountMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'count');
+
+        $this->assertSame('int', $reflection->getReturnType()->getName());
+    }
+
+    public function testWithTrashedMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'withTrashed');
+
+        $this->assertSame('array', $reflection->getReturnType()->getName());
+    }
+
+    public function testOnlyTrashedMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'onlyTrashed');
+
+        $this->assertSame('MongoDB\Driver\CursorInterface', $reflection->getReturnType()->getName());
+    }
+
+    // --- 方法参数类型测试 ---
+
+    public function testFindMethodParameterTypes(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'find');
+        $params = $reflection->getParameters();
+
+        $this->assertSame('filter', $params[0]->getName());
+        $this->assertSame('array', $params[0]->getType()->getName());
+        $this->assertTrue($params[0]->isOptional());
+
+        $this->assertSame('options', $params[1]->getName());
+        $this->assertSame('array', $params[1]->getType()->getName());
+        $this->assertTrue($params[1]->isOptional());
+    }
+
+    public function testInsertMethodParameterTypes(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'insert');
+        $params = $reflection->getParameters();
+
+        $this->assertSame('document', $params[0]->getName());
+        $this->assertTrue($params[0]->getType() instanceof \ReflectionUnionType);
+    }
+
+    public function testUpdateMethodParameterTypes(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'update');
+        $params = $reflection->getParameters();
+
+        $this->assertSame('filter', $params[0]->getName());
+        $this->assertSame('array', $params[0]->getType()->getName());
+
+        $this->assertSame('update', $params[1]->getName());
+        $this->assertTrue($params[1]->getType() instanceof \ReflectionUnionType);
+
+        $this->assertSame('options', $params[2]->getName());
+        $this->assertTrue($params[2]->isOptional());
     }
 
     // --- Config Tests ---
