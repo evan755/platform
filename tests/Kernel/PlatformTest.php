@@ -17,41 +17,6 @@ class PlatformTest extends TestCase
 {
     protected string $appsDir;
 
-    protected function setUp(): void
-    {
-        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
-        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
-        if (!is_dir($this->appsDir)) {
-            mkdir($this->appsDir, 0755, true);
-        }
-    }
-
-    protected function tearDown(): void
-    {
-        Platform::reset();
-
-        if (is_dir($this->appsDir)) {
-            $iterator = new DirectoryIterator($this->appsDir);
-            foreach ($iterator as $item) {
-                if ($item->isDot()) {
-                    continue;
-                }
-                $appJson = $item->getPathname() . DIRECTORY_SEPARATOR . 'App.json';
-                if (file_exists($appJson)) {
-                    unlink($appJson);
-                }
-                if ($item->isDir()) {
-                    rmdir($item->getPathname());
-                } elseif ($item->isFile()) {
-                    unlink($item->getPathname());
-                }
-            }
-            rmdir($this->appsDir);
-        }
-    }
-
-    // --- getInstance 测试 ---
-
     public function testGetInstanceReturnsPlatformInstance(): void
     {
         $platform = Platform::getInstance();
@@ -67,6 +32,8 @@ class PlatformTest extends TestCase
         $this->assertSame($first, $second);
     }
 
+    // --- getInstance 测试 ---
+
     public function testSingletonSurvivesMultipleGetInstanceCalls(): void
     {
         $instances = [];
@@ -78,8 +45,6 @@ class PlatformTest extends TestCase
             $this->assertSame($instances[0], $instances[$i]);
         }
     }
-
-    // --- reset 测试 ---
 
     public function testResetIsPublicStatic(): void
     {
@@ -98,6 +63,8 @@ class PlatformTest extends TestCase
         $this->assertNotSame($first, $second);
     }
 
+    // --- reset 测试 ---
+
     public function testResetAllowsFreshInstance(): void
     {
         $platform = Platform::getInstance();
@@ -110,8 +77,6 @@ class PlatformTest extends TestCase
         $this->assertSame($oldRuntime, $fresh->runtime);
     }
 
-    // --- 反序列化/克隆防护测试 ---
-
     public function testConstructorIsProtected(): void
     {
         $constructor = new ReflectionMethod(Platform::class, '__construct');
@@ -123,6 +88,8 @@ class PlatformTest extends TestCase
     {
         $this->assertTrue(method_exists(Platform::class, '__wakeup'));
     }
+
+    // --- 反序列化/克隆防护测试 ---
 
     public function testWakeupMethodIsPublic(): void
     {
@@ -153,8 +120,6 @@ class PlatformTest extends TestCase
         $this->assertNotSame($unserialized, $fresh);
     }
 
-    // --- name / version 测试 ---
-
     public function testNamePropertyIsPublic(): void
     {
         $reflection = new ReflectionProperty(Platform::class, 'name');
@@ -168,6 +133,8 @@ class PlatformTest extends TestCase
 
         $this->assertTrue($reflection->isPublic());
     }
+
+    // --- name / version 测试 ---
 
     public function testDefaultNameWhenNoComposerJson(): void
     {
@@ -244,8 +211,6 @@ class PlatformTest extends TestCase
         $this->assertSame('1.0.0', $platform->version);
     }
 
-    // --- composer 方法测试 ---
-
     public function testComposerMethodIsProtected(): void
     {
         $method = new ReflectionMethod(Platform::class, 'composer');
@@ -262,6 +227,8 @@ class PlatformTest extends TestCase
 
         $this->assertSame([], $result);
     }
+
+    // --- composer 方法测试 ---
 
     public function testComposerReturnsParsedJson(): void
     {
@@ -288,8 +255,6 @@ class PlatformTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    // --- 属性存在性测试 ---
-
     public function testInstancePropertyIsProtected(): void
     {
         $reflection = new ReflectionProperty(Platform::class, 'instance');
@@ -304,6 +269,8 @@ class PlatformTest extends TestCase
         $this->assertSame('self', $reflection->getType()?->getName());
         $this->assertTrue($reflection->getType()?->allowsNull());
     }
+
+    // --- 属性存在性测试 ---
 
     public function testAllDirectoryPropertiesArePublic(): void
     {
@@ -323,8 +290,6 @@ class PlatformTest extends TestCase
         $this->assertTrue($property->isPublic());
     }
 
-    // --- 目录路径测试 ---
-
     public function testRootDirectoryPropertyIsSet(): void
     {
         $platform = Platform::getInstance();
@@ -338,6 +303,8 @@ class PlatformTest extends TestCase
 
         $this->assertDirectoryExists($platform->rootDirectory);
     }
+
+    // --- 目录路径测试 ---
 
     public function testRootDirectoryPointsToProjectRoot(): void
     {
@@ -379,8 +346,6 @@ class PlatformTest extends TestCase
         );
     }
 
-    // --- runtime 测试 ---
-
     public function testRuntimePropertyIsSet(): void
     {
         $platform = Platform::getInstance();
@@ -399,14 +364,14 @@ class PlatformTest extends TestCase
         }
     }
 
+    // --- runtime 测试 ---
+
     public function testRuntimeOnlyAllowsCliOrWeb(): void
     {
         $platform = Platform::getInstance();
 
         $this->assertContains($platform->runtime, ['cli', 'web']);
     }
-
-    // --- discoverApps 测试 ---
 
     public function testAppsPropertyIsArray(): void
     {
@@ -421,6 +386,8 @@ class PlatformTest extends TestCase
 
         $this->assertTrue($reflection->isProtected());
     }
+
+    // --- discoverApps 测试 ---
 
     public function testDiscoverAppsWithAppJson(): void
     {
@@ -517,5 +484,38 @@ class PlatformTest extends TestCase
         $platform = Platform::getInstance();
 
         $this->assertIsArray($platform->apps);
+    }
+
+    protected function setUp(): void
+    {
+        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
+        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
+        if (!is_dir($this->appsDir)) {
+            mkdir($this->appsDir, 0755, true);
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        Platform::reset();
+
+        if (is_dir($this->appsDir)) {
+            $iterator = new DirectoryIterator($this->appsDir);
+            foreach ($iterator as $item) {
+                if ($item->isDot()) {
+                    continue;
+                }
+                $appJson = $item->getPathname() . DIRECTORY_SEPARATOR . 'App.json';
+                if (file_exists($appJson)) {
+                    unlink($appJson);
+                }
+                if ($item->isDir()) {
+                    rmdir($item->getPathname());
+                } elseif ($item->isFile()) {
+                    unlink($item->getPathname());
+                }
+            }
+            rmdir($this->appsDir);
+        }
     }
 }

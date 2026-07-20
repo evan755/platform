@@ -7,9 +7,9 @@ use Evan755\Platform\Kernel\Commands\View\CreateCommand;
 use Evan755\Platform\Kernel\Commands\View\DeleteCommand;
 use Evan755\Platform\Kernel\Commands\View\IndexCommand;
 use Evan755\Platform\Kernel\Platform;
+use FilesystemIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
@@ -22,52 +22,6 @@ use Symfony\Component\Console\Tester\CommandTester;
 class CommandTest extends TestCase
 {
     protected string $appsDir;
-
-    protected function setUp(): void
-    {
-        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
-        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
-    }
-
-    protected function tearDown(): void
-    {
-        Platform::reset();
-
-        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . 'my-app';
-        if (is_dir($appDir)) {
-            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
-            foreach ($iterator as $file) {
-                if ($file->isDir()) {
-                    rmdir($file->getPathname());
-                } else {
-                    unlink($file->getPathname());
-                }
-            }
-            rmdir($appDir);
-        }
-    }
-
-    protected function createApp(string $name): void
-    {
-        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . $name;
-        $dirs = [$appDir, $appDir . DIRECTORY_SEPARATOR . 'Views'];
-        foreach ($dirs as $dir) {
-            is_dir($dir) or mkdir($dir, 0755, true);
-        }
-        file_put_contents($appDir . DIRECTORY_SEPARATOR . 'App.json', json_encode([
-            'name' => $name,
-            'database' => ['uri' => '', 'name' => $name . '_db'],
-        ]));
-        Platform::reset();
-    }
-
-    protected function createViewFile(string $app, string $view): void
-    {
-        $path = $this->appsDir . DIRECTORY_SEPARATOR . $app . DIRECTORY_SEPARATOR . 'Views' . DIRECTORY_SEPARATOR . strtolower($view) . '.blade.php';
-        file_put_contents($path, '<div></div>');
-    }
-
-    // --- CreateCommand ---
 
     public function testCreateCommandExtendsBaseCommand(): void
     {
@@ -96,6 +50,8 @@ class CommandTest extends TestCase
 
         $this->assertSame('Create a new view in an application', $command->getDescription());
     }
+
+    // --- CreateCommand ---
 
     public function testCreateCommandHasAppArgument(): void
     {
@@ -168,6 +124,26 @@ class CommandTest extends TestCase
         $this->assertStringContainsString('already exists', $tester->getDisplay());
     }
 
+    protected function createApp(string $name): void
+    {
+        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . $name;
+        $dirs = [$appDir, $appDir . DIRECTORY_SEPARATOR . 'Views'];
+        foreach ($dirs as $dir) {
+            is_dir($dir) or mkdir($dir, 0755, true);
+        }
+        file_put_contents($appDir . DIRECTORY_SEPARATOR . 'App.json', json_encode([
+            'name' => $name,
+            'database' => ['uri' => '', 'name' => $name . '_db'],
+        ]));
+        Platform::reset();
+    }
+
+    protected function createViewFile(string $app, string $view): void
+    {
+        $path = $this->appsDir . DIRECTORY_SEPARATOR . $app . DIRECTORY_SEPARATOR . 'Views' . DIRECTORY_SEPARATOR . strtolower($view) . '.blade.php';
+        file_put_contents($path, '<div></div>');
+    }
+
     public function testCreateCommandExecuteReturnsSuccess(): void
     {
         $this->createApp('my-app');
@@ -180,8 +156,6 @@ class CommandTest extends TestCase
         $this->assertSame(Command::SUCCESS, $exitCode);
         $this->assertStringContainsString('created', $tester->getDisplay());
     }
-
-    // --- DeleteCommand ---
 
     public function testDeleteCommandExtendsBaseCommand(): void
     {
@@ -196,6 +170,8 @@ class CommandTest extends TestCase
 
         $this->assertSame('view:delete', $command->getName());
     }
+
+    // --- DeleteCommand ---
 
     public function testDeleteCommandAliases(): void
     {
@@ -295,8 +271,6 @@ class CommandTest extends TestCase
         $this->assertStringContainsString('deleted', $tester->getDisplay());
     }
 
-    // --- IndexCommand ---
-
     public function testIndexCommandExtendsBaseCommand(): void
     {
         $command = new IndexCommand();
@@ -310,6 +284,8 @@ class CommandTest extends TestCase
 
         $this->assertSame('view:list', $command->getName());
     }
+
+    // --- IndexCommand ---
 
     public function testIndexCommandAliases(): void
     {
@@ -366,5 +342,29 @@ class CommandTest extends TestCase
         $exitCode = $tester->execute(['app' => 'my-app']);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
+    }
+
+    protected function setUp(): void
+    {
+        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
+        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
+    }
+
+    protected function tearDown(): void
+    {
+        Platform::reset();
+
+        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . 'my-app';
+        if (is_dir($appDir)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $file) {
+                if ($file->isDir()) {
+                    rmdir($file->getPathname());
+                } else {
+                    unlink($file->getPathname());
+                }
+            }
+            rmdir($appDir);
+        }
     }
 }

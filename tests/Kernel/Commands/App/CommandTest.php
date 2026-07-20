@@ -7,14 +7,13 @@ use Evan755\Platform\Kernel\Commands\App\CreateCommand;
 use Evan755\Platform\Kernel\Commands\App\DeleteCommand;
 use Evan755\Platform\Kernel\Commands\App\IndexCommand;
 use Evan755\Platform\Kernel\Platform;
+use FilesystemIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Tester\CommandTester;
 
 #[CoversClass(CreateCommand::class)]
@@ -23,32 +22,6 @@ use Symfony\Component\Console\Tester\CommandTester;
 class CommandTest extends TestCase
 {
     protected string $appsDir;
-
-    protected function setUp(): void
-    {
-        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
-        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
-    }
-
-    protected function tearDown(): void
-    {
-        Platform::reset();
-
-        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . 'my-app';
-        if (is_dir($appDir)) {
-            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
-            foreach ($iterator as $file) {
-                if ($file->isDir()) {
-                    rmdir($file->getPathname());
-                } else {
-                    unlink($file->getPathname());
-                }
-            }
-            rmdir($appDir);
-        }
-    }
-
-    // --- CreateCommand ---
 
     public function testCreateCommandExtendsBaseCommand(): void
     {
@@ -63,6 +36,8 @@ class CommandTest extends TestCase
 
         $this->assertSame('app:create', $command->getName());
     }
+
+    // --- CreateCommand ---
 
     public function testCreateCommandAliases(): void
     {
@@ -111,8 +86,6 @@ class CommandTest extends TestCase
         $this->assertSame(Command::SUCCESS, $exitCode);
     }
 
-    // --- DeleteCommand ---
-
     public function testDeleteCommandExtendsBaseCommand(): void
     {
         $command = new DeleteCommand();
@@ -126,6 +99,8 @@ class CommandTest extends TestCase
 
         $this->assertSame('app:delete', $command->getName());
     }
+
+    // --- DeleteCommand ---
 
     public function testDeleteCommandAliases(): void
     {
@@ -174,8 +149,6 @@ class CommandTest extends TestCase
         $this->assertSame(Command::FAILURE, $exitCode);
     }
 
-    // --- IndexCommand ---
-
     public function testIndexCommandExtendsBaseCommand(): void
     {
         $command = new IndexCommand();
@@ -189,6 +162,8 @@ class CommandTest extends TestCase
 
         $this->assertSame('app:list', $command->getName());
     }
+
+    // --- IndexCommand ---
 
     public function testIndexCommandAliases(): void
     {
@@ -219,5 +194,29 @@ class CommandTest extends TestCase
         $exitCode = $tester->execute([]);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
+    }
+
+    protected function setUp(): void
+    {
+        $rootDir = dirname((new ReflectionClass(ClassLoader::class))->getFileName(), 3);
+        $this->appsDir = $rootDir . DIRECTORY_SEPARATOR . 'app';
+    }
+
+    protected function tearDown(): void
+    {
+        Platform::reset();
+
+        $appDir = $this->appsDir . DIRECTORY_SEPARATOR . 'my-app';
+        if (is_dir($appDir)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($iterator as $file) {
+                if ($file->isDir()) {
+                    rmdir($file->getPathname());
+                } else {
+                    unlink($file->getPathname());
+                }
+            }
+            rmdir($appDir);
+        }
     }
 }

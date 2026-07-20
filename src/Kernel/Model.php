@@ -3,6 +3,7 @@
 namespace Evan755\Platform\Kernel;
 
 use Doctrine\Inflector\InflectorFactory;
+use MongoDB\BSON\UTCDateTime;
 use MongoDB\Client;
 use MongoDB\Collection;
 use MongoDB\Database;
@@ -45,23 +46,36 @@ abstract class Model
         return InflectorFactory::create()->build()->pluralize(strtolower($class));
     }
 
-    public function find(array $filter = [], array $options = []): CursorInterface
-    {
-        return $this->collection->find($filter, $options);
-    }
-
     public function findOne(array $filter = [], array $options = []): array|object|null
     {
+        $filter['deleted_at'] = ['$exists' => false];
         return $this->collection->findOne($filter, $options);
     }
 
     public function insert(array|object $document): mixed
     {
+        if (is_array($document)) {
+            $document['created_at'] = $this->now();
+            $document['updated_at'] = $this->now();
+        }
         return $this->collection->insertOne($document)->getInsertedId();
+    }
+
+    protected function now(): UTCDateTime
+    {
+        return new UTCDateTime();
     }
 
     public function update(array $filter, array|object $update, array $options = []): int
     {
+        if (is_array($update) && !empty($update) && !str_starts_with(array_key_first($update) ?? '', '$')) {
+            $update = ['$set' => $update];
+        }
+        if (isset($update['$set'])) {
+            $update['$set']['updated_at'] = $this->now();
+        } else {
+            $update['$set'] = ['updated_at' => $this->now()];
+        }
         return $this->collection->updateOne($filter, $update, $options)->getModifiedCount();
     }
 
@@ -70,8 +84,33 @@ abstract class Model
         return $this->collection->deleteOne($filter)->getDeletedCount();
     }
 
+    public function softDelete(array $filter): int
+    {
+        return $this->collection->updateOne($filter, [
+            '$set' => ['deleted_at' => $this->now()],
+        ])->getModifiedCount();
+    }
+
     public function count(array $filter = []): int
     {
+        $filter['deleted_at'] = ['$exists' => false];
         return $this->collection->countDocuments($filter);
+    }
+
+    public function withTrashed(): array
+    {
+        return [];
+    }
+
+    public function onlyTrashed(array $filter = [], array $options = []): CursorInterface
+    {
+        $filter['deleted_at'] = ['$exists' => true];
+        return $this->collection->find($filter, $options);
+    }
+
+    public function find(array $filter = [], array $options = []): CursorInterface
+    {
+        $filter['deleted_at'] = ['$exists' => false];
+        return $this->collection->find($filter, $options);
     }
 }

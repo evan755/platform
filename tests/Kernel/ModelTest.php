@@ -47,18 +47,6 @@ class Category extends Model
 #[CoversClass(Model::class)]
 class ModelTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        Platform::reset();
-    }
-
-    protected function tearDown(): void
-    {
-        Platform::reset();
-    }
-
-    // --- Structure Tests ---
-
     public function testModelIsAbstract(): void
     {
         $reflection = new ReflectionClass(Model::class);
@@ -73,6 +61,8 @@ class ModelTest extends TestCase
         $this->assertTrue($reflection->isProtected());
         $this->assertSame('string', $reflection->getType()->getName());
     }
+
+    // --- Structure Tests ---
 
     public function testModelHasDatabaseProperty(): void
     {
@@ -90,8 +80,6 @@ class ModelTest extends TestCase
         $this->assertSame('MongoDB\Collection', $reflection->getType()->getName());
     }
 
-    // --- Constructor Tests ---
-
     public function testConstructorAcceptsAppParameter(): void
     {
         $reflection = new ReflectionClass(Model::class);
@@ -103,8 +91,6 @@ class ModelTest extends TestCase
         $this->assertSame('string', $constructor->getParameters()[0]->getType()->getName());
     }
 
-    // --- Method Signature Tests ---
-
     public function testFindMethodExists(): void
     {
         $reflection = new ReflectionMethod(Model::class, 'find');
@@ -113,6 +99,8 @@ class ModelTest extends TestCase
         $this->assertCount(2, $reflection->getParameters());
     }
 
+    // --- Constructor Tests ---
+
     public function testFindOneMethodExists(): void
     {
         $reflection = new ReflectionMethod(Model::class, 'findOne');
@@ -120,6 +108,8 @@ class ModelTest extends TestCase
         $this->assertTrue($reflection->isPublic());
         $this->assertCount(2, $reflection->getParameters());
     }
+
+    // --- Method Signature Tests ---
 
     public function testInsertMethodExists(): void
     {
@@ -153,8 +143,6 @@ class ModelTest extends TestCase
         $this->assertCount(1, $reflection->getParameters());
     }
 
-    // --- ResolveCollection Tests ---
-
     public function testResolveCollectionUsesExplicitCollections(): void
     {
         $model = new TestModel();
@@ -175,6 +163,8 @@ class ModelTest extends TestCase
         $this->assertSame('sessions', $method->invoke($model));
     }
 
+    // --- ResolveCollection Tests ---
+
     public function testResolveCollectionPluralizesPerson(): void
     {
         $model = new Person();
@@ -194,8 +184,6 @@ class ModelTest extends TestCase
 
         $this->assertSame('categories', $method->invoke($model));
     }
-
-    // --- Config Tests ---
 
     public function testConfigReturnsDefaultWhenAppNotFound(): void
     {
@@ -239,6 +227,18 @@ class ModelTest extends TestCase
         // Cleanup
         unlink($appJson);
         rmdir($appDir);
+        Platform::reset();
+    }
+
+    // --- Config Tests ---
+
+    protected function setUp(): void
+    {
+        Platform::reset();
+    }
+
+    protected function tearDown(): void
+    {
         Platform::reset();
     }
 }
