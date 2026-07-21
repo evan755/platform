@@ -63,7 +63,7 @@ class ModelTest extends TestCase
         $this->assertSame('string', $reflection->getType()->getName());
     }
 
-    // --- Structure Tests ---
+    // --- 结构测试 ---
 
     public function testModelHasDatabaseProperty(): void
     {
@@ -92,81 +92,25 @@ class ModelTest extends TestCase
         $this->assertSame('string', $constructor->getParameters()[0]->getType()->getName());
     }
 
-    public function testFindMethodExists(): void
+    public function testConfigMethodExists(): void
     {
-        $reflection = new ReflectionMethod(Model::class, 'find');
+        $reflection = new ReflectionMethod(Model::class, 'config');
 
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(2, $reflection->getParameters());
-    }
-
-    // --- Constructor Tests ---
-
-    public function testFindOneMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'findOne');
-
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(2, $reflection->getParameters());
-    }
-
-    // --- Method Signature Tests ---
-
-    public function testInsertMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'insert');
-
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(1, $reflection->getParameters());
-    }
-
-    public function testUpdateMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'update');
-
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(3, $reflection->getParameters());
-    }
-
-    public function testDeleteMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'delete');
-
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(1, $reflection->getParameters());
-    }
-
-    public function testSoftDeleteMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'softDelete');
-
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(1, $reflection->getParameters());
-    }
-
-    public function testCountMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'count');
-
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(1, $reflection->getParameters());
-    }
-
-    public function testWithTrashedMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'withTrashed');
-
-        $this->assertTrue($reflection->isPublic());
+        $this->assertTrue($reflection->isProtected());
         $this->assertCount(0, $reflection->getParameters());
     }
 
-    public function testOnlyTrashedMethodExists(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'onlyTrashed');
+    // --- 构造函数测试 ---
 
-        $this->assertTrue($reflection->isPublic());
-        $this->assertCount(2, $reflection->getParameters());
+    public function testCollectionMethodExists(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'collection');
+
+        $this->assertTrue($reflection->isProtected());
+        $this->assertCount(0, $reflection->getParameters());
     }
+
+    // --- 方法存在性测试 ---
 
     public function testNowMethodExists(): void
     {
@@ -176,43 +120,66 @@ class ModelTest extends TestCase
         $this->assertCount(0, $reflection->getParameters());
     }
 
-    public function testResolveCollectionUsesExplicitCollections(): void
+    public function testConfigMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'config');
+
+        $this->assertSame('array', $reflection->getReturnType()->getName());
+    }
+
+    public function testCollectionMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'collection');
+
+        $this->assertSame('string', $reflection->getReturnType()->getName());
+    }
+
+    // --- 方法返回类型测试 ---
+
+    public function testNowMethodReturnType(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'now');
+
+        $this->assertSame('MongoDB\BSON\UTCDateTime', $reflection->getReturnType()->getName());
+    }
+
+    public function testCollectionUsesExplicitCollections(): void
     {
         $model = new TestModel();
         $reflection = new ReflectionClass(TestModel::class);
-        $method = $reflection->getMethod('resolveCollection');
+        $method = $reflection->getMethod('collection');
         $method->setAccessible(true);
 
         $this->assertSame('tests', $method->invoke($model));
     }
 
-    public function testResolveCollectionAutoGeneratesFromClassName(): void
+    public function testCollectionAutoGeneratesFromClassName(): void
     {
         $model = new Session();
         $reflection = new ReflectionClass(Session::class);
-        $method = $reflection->getMethod('resolveCollection');
+        $method = $reflection->getMethod('collection');
         $method->setAccessible(true);
 
         $this->assertSame('sessions', $method->invoke($model));
     }
 
-    // --- ResolveCollection Tests ---
+    // --- collection() 方法测试 ---
 
-    public function testResolveCollectionPluralizesPerson(): void
+    public function testCollectionPluralizesPerson(): void
     {
         $model = new Person();
         $reflection = new ReflectionClass(Person::class);
-        $method = $reflection->getMethod('resolveCollection');
+        $method = $reflection->getMethod('collection');
         $method->setAccessible(true);
 
         $this->assertSame('people', $method->invoke($model));
     }
 
-    public function testResolveCollectionPluralizesCategory(): void
+    public function testCollectionPluralizesCategory(): void
     {
         $model = new Category();
         $reflection = new ReflectionClass(Category::class);
-        $method = $reflection->getMethod('resolveCollection');
+        $method = $reflection->getMethod('collection');
         $method->setAccessible(true);
 
         $this->assertSame('categories', $method->invoke($model));
@@ -263,7 +230,7 @@ class ModelTest extends TestCase
         Platform::reset();
     }
 
-    // --- now() 方法测试 ---
+    // --- config() 方法测试 ---
 
     public function testNowReturnsUTCDateTimeInstance(): void
     {
@@ -292,112 +259,7 @@ class ModelTest extends TestCase
         $this->assertLessThanOrEqual($after->toDateTime()->getTimestamp(), $result->toDateTime()->getTimestamp());
     }
 
-    // --- 方法返回类型测试 ---
-
-    public function testFindMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'find');
-
-        $this->assertSame('MongoDB\Driver\CursorInterface', $reflection->getReturnType()->getName());
-    }
-
-    public function testFindOneMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'findOne');
-
-        $this->assertTrue($reflection->getReturnType() instanceof \ReflectionUnionType);
-    }
-
-    public function testInsertMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'insert');
-
-        $this->assertSame('mixed', $reflection->getReturnType()->getName());
-    }
-
-    public function testUpdateMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'update');
-
-        $this->assertSame('int', $reflection->getReturnType()->getName());
-    }
-
-    public function testDeleteMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'delete');
-
-        $this->assertSame('int', $reflection->getReturnType()->getName());
-    }
-
-    public function testSoftDeleteMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'softDelete');
-
-        $this->assertSame('int', $reflection->getReturnType()->getName());
-    }
-
-    public function testCountMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'count');
-
-        $this->assertSame('int', $reflection->getReturnType()->getName());
-    }
-
-    public function testWithTrashedMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'withTrashed');
-
-        $this->assertSame('array', $reflection->getReturnType()->getName());
-    }
-
-    public function testOnlyTrashedMethodReturnType(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'onlyTrashed');
-
-        $this->assertSame('MongoDB\Driver\CursorInterface', $reflection->getReturnType()->getName());
-    }
-
-    // --- 方法参数类型测试 ---
-
-    public function testFindMethodParameterTypes(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'find');
-        $params = $reflection->getParameters();
-
-        $this->assertSame('filter', $params[0]->getName());
-        $this->assertSame('array', $params[0]->getType()->getName());
-        $this->assertTrue($params[0]->isOptional());
-
-        $this->assertSame('options', $params[1]->getName());
-        $this->assertSame('array', $params[1]->getType()->getName());
-        $this->assertTrue($params[1]->isOptional());
-    }
-
-    public function testInsertMethodParameterTypes(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'insert');
-        $params = $reflection->getParameters();
-
-        $this->assertSame('document', $params[0]->getName());
-        $this->assertTrue($params[0]->getType() instanceof \ReflectionUnionType);
-    }
-
-    public function testUpdateMethodParameterTypes(): void
-    {
-        $reflection = new ReflectionMethod(Model::class, 'update');
-        $params = $reflection->getParameters();
-
-        $this->assertSame('filter', $params[0]->getName());
-        $this->assertSame('array', $params[0]->getType()->getName());
-
-        $this->assertSame('update', $params[1]->getName());
-        $this->assertTrue($params[1]->getType() instanceof \ReflectionUnionType);
-
-        $this->assertSame('options', $params[2]->getName());
-        $this->assertTrue($params[2]->isOptional());
-    }
-
-    // --- Config Tests ---
+    // --- now() 方法测试 ---
 
     protected function setUp(): void
     {
