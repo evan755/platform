@@ -50,4 +50,14 @@ abstract class Model
         return new UTCDateTime();
     }
 
+    protected function exists(array $filter = []): bool
+    {
+        if (empty($filter)) {
+            return $this->collection->countDocuments() > 0;
+        }
+        return (bool)$this->collection->findOne(
+            $filter,
+            ['projection' => ['_id' => 1]]
+        );
+    }
 }

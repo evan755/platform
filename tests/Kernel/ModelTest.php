@@ -5,6 +5,7 @@ namespace Tests\Kernel;
 use Evan755\Platform\Kernel\Model;
 use Evan755\Platform\Kernel\Platform;
 use MongoDB\BSON\UTCDateTime;
+use MongoDB\Collection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -258,6 +259,108 @@ class ModelTest extends TestCase
         $this->assertGreaterThanOrEqual($before->toDateTime()->getTimestamp(), $result->toDateTime()->getTimestamp());
         $this->assertLessThanOrEqual($after->toDateTime()->getTimestamp(), $result->toDateTime()->getTimestamp());
     }
+
+    // --- exists() 方法测试 ---
+
+    public function testExistsMethodExists(): void
+    {
+        $reflection = new ReflectionMethod(Model::class, 'exists');
+
+        $this->assertTrue($reflection->isProtected());
+        $this->assertSame('bool', $reflection->getReturnType()->getName());
+    }
+
+    public function testExistsMethodHasOptionalFilterParameter(): void
+{
+    $reflection = new ReflectionMethod(Model::class, 'exists');
+    $parameters = $reflection->getParameters();
+
+    $this->assertCount(1, $parameters);
+    $this->assertSame('filter', $parameters[0]->getName());
+    $this->assertSame('array', $parameters[0]->getType()->getName());
+    $this->assertTrue($parameters[0]->isOptional());
+    $this->assertSame([], $parameters[0]->getDefaultValue());
+}
+
+public function testExistsReturnsTrueWhenDocumentsExistWithoutFilter(): void
+{
+    $model = new TestModel();
+    $mockCollection = $this->createMock(Collection::class);
+    $mockCollection->expects($this->once())
+        ->method('countDocuments')
+        ->willReturn(5);
+
+    $reflection = new ReflectionProperty(Model::class, 'collection');
+    $reflection->setAccessible(true);
+    $reflection->setValue($model, $mockCollection);
+
+    $method = new ReflectionMethod(Model::class, 'exists');
+    $method->setAccessible(true);
+
+    $this->assertTrue($method->invoke($model));
+}
+
+public function testExistsReturnsFalseWhenNoDocumentsWithoutFilter(): void
+{
+    $model = new TestModel();
+    $mockCollection = $this->createMock(Collection::class);
+    $mockCollection->expects($this->once())
+        ->method('countDocuments')
+        ->willReturn(0);
+
+    $reflection = new ReflectionProperty(Model::class, 'collection');
+    $reflection->setAccessible(true);
+    $reflection->setValue($model, $mockCollection);
+
+    $method = new ReflectionMethod(Model::class, 'exists');
+    $method->setAccessible(true);
+
+    $this->assertFalse($method->invoke($model));
+}
+
+public function testExistsReturnsTrueWhenDocumentMatchesFilter(): void
+{
+    $model = new TestModel();
+    $mockCollection = $this->createMock(Collection::class);
+    $mockCollection->expects($this->once())
+        ->method('findOne')
+        ->with(
+            ['name' => 'test'],
+            ['projection' => ['_id' => 1]]
+        )
+        ->willReturn(['_id' => 'some-id']);
+
+    $reflection = new ReflectionProperty(Model::class, 'collection');
+    $reflection->setAccessible(true);
+    $reflection->setValue($model, $mockCollection);
+
+    $method = new ReflectionMethod(Model::class, 'exists');
+    $method->setAccessible(true);
+
+    $this->assertTrue($method->invoke($model, ['name' => 'test']));
+}
+
+public function testExistsReturnsFalseWhenNoDocumentMatchesFilter(): void
+{
+    $model = new TestModel();
+    $mockCollection = $this->createMock(Collection::class);
+    $mockCollection->expects($this->once())
+        ->method('findOne')
+        ->with(
+            ['name' => 'nonexistent'],
+            ['projection' => ['_id' => 1]]
+        )
+        ->willReturn(null);
+
+    $reflection = new ReflectionProperty(Model::class, 'collection');
+    $reflection->setAccessible(true);
+    $reflection->setValue($model, $mockCollection);
+
+    $method = new ReflectionMethod(Model::class, 'exists');
+    $method->setAccessible(true);
+
+    $this->assertFalse($method->invoke($model, ['name' => 'nonexistent']));
+}
 
     // --- now() 方法测试 ---
 
